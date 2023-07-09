@@ -4,17 +4,32 @@ import utils,constants,config
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from utils import prRed,prYellow,prGreen
-
+import json
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.support.ui import Select
 
 class Linkedin:
     def __init__(self):
-        
             prYellow("🌐 Bot will run in Chrome browser and log in Linkedin for you.")
             self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()),options=utils.chromeBrowserOptions())
             self.driver.get("https://www.linkedin.com/login?trk=guest_homepage-basic_nav-header-signin")
-
+            self.recordList = {
+                'disabiity': 2,
+                'veteran': 3,
+                'race': 'Asian',
+                'gender': 'Male',
+                'sponsor': 1,
+                'sponsor': 'Yes',
+                'hear': 'LinkedIn',
+                'city': 'Philadelphia',
+                'state': 'Pennsylvania',
+                'authorized': 'Yes',
+                'salary': 120000,
+                'years': '8'
+            }
+            self.recordList = json.dumps(self.recordList)
+            self.recordList= json.loads(self.recordList)
             prYellow("🔄 Trying to log in linkedin...")
             try:    
                 self.driver.find_element("id","username").send_keys(config.email)
@@ -210,16 +225,114 @@ class Linkedin:
 
         return EasyApplyButton
 
+    def checkKeywords(self):
+        keywords= ['disability', 'sponsor', 'race', 'gender', 'veteran']
+        return keywords
+
+    # def optionType(self):
+    #     #check checkbox
+    #     #check radiobtn
+    #     #check textbox
+
+    def checkOptionType(self, group):
+        try:
+            radio = group.find_elements(By.XPATH, "div//input[contains(@type, 'radio')]") #checks for radio button
+            if radio.aria_role == 'radio':
+                return ['radio',radio]
+            else:
+                raise Exception
+        except:
+            try:
+                txtBox = group.find_element(By.XPATH, "div//input[contains(@type, 'text')]")
+                if txtBox.aria_role == 'textbox':
+                    return ['textBox',txtBox]
+                else:
+                    raise Exception
+            except:
+                try:
+                    selectBox=group.find_element(By.XPATH, "div//select[starts-with(@id, 'text-entity-list-form')]") #select
+                    selectBox = Select(selectBox)
+                    return ['selectBox',selectBox]
+                except:
+                    print('None of the optionType')
+
+
+
     def applyProcess(self, percentage, offerPage):
         applyPages = math.floor(100 / percentage) 
         result = ""  
         try:
-            for pages in range(applyPages-2):
-                self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Continue to next step']").click()
-                time.sleep(random.uniform(1, constants.botSpeed))
+            for pages in range(applyPages-1):
+                groupList= self.driver.find_elements(By.XPATH, "//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]")
+                for group in groupList:
+                    questionText = group.text.lower()
+                    #if any(keyword in questionText for keyword in self.checkKeywords()):
+                    if 'disability' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'selectBox':
+                            optionType[1].select_by_index(2)
+                    elif 'veteran' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'selectBox':
+                            optionType[1].select_by_index(3)
+                    elif 'race' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'selectBox':
+                            optionType[1].select_by_value('Asian')
+                    elif 'gender' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'selectBox':
+                            optionType[1].select_by_value('Male')
+                    elif 'sponsor' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'selectBox':
+                            optionType[1].select_by_index(1)
+                    elif 'hear' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'textBox':
+                            optionType[1].send_keys('Linkedin')
+                        if optionType[0] == 'selectBox':
+                            optionType[1].select_by_value('LinkedIn')
+                    elif 'City' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'textBox':
+                            optionType[1].send_keys('Philadelphia')
+                    elif 'State' in questionText:
+                        optionType = self.checkOptionType(group)
+                        if optionType[0] == 'textBox':
+                            optionType[1].send_keys('Pennsylvania')
+                    elif 'authorized' in questionText:
+                        optionType = self.checkOptionType(group)
+                    elif 'acknowledge' in questionText:
+                        group.find_element(By.XPATH, "div//label").click()
+                    
+                    else:  
+                        try: 
+                            radioBtnList = group.find_elements(By.XPATH, "div//input[contains(@type, 'radio')]") #checks for radio button
+                            if 'sponsor' in questionText:
+                                group.find_element(By.XPATH, "div//label[contains(@data-test-text-selectable-option__label, 'No')]").click()
+                            else:
+                                 group.find_element(By.XPATH, "div//label[contains(@data-test-text-selectable-option__label, 'Yes')]").click()
+                            time.sleep(2)
+                        except:
+                            try:
+                                txtBox = group.find_element(By.XPATH, "div//input[contains(@type, 'text')]") #check for text box
+                                if 'salary' in questionText:
+                                    txtBox.send_keys('140000')
+                                elif 'years' in questionText:
+                                    txtBox.send_keys('8')
+                                time.sleep(2)
+                            except:
+                                pass
+                try:
+                    self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Continue to next step']").click()
+                    time.sleep(random.uniform(1, constants.botSpeed))
+                except:
+                    self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Review your application']").click() 
+                    time.sleep(random.uniform(1, constants.botSpeed))
 
-            self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Review your application']").click() 
-            time.sleep(random.uniform(1, constants.botSpeed))
+            # self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Review your application']").click() 
+            # time.sleep(random.uniform(1, constants.botSpeed))
 
             if config.followCompanies is False:
                 self.driver.find_element(By.CSS_SELECTOR,"label[for='follow-company-checkbox']").click() 
