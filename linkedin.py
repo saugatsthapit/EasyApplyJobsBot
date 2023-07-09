@@ -22,7 +22,11 @@ class Linkedin:
                     'race': 'Asian',
                     'gender': 'Male',
                     'sponsor': 1,
-                    'authorized': 'Yes'
+                    'authorized': 'Yes',
+                    'authorization': 2,
+                    'employed by': 'No',
+                    '10 being the highest': '8',
+                    '5 being the highest':'4'
                 },
                 'comboBox':{
                     'city': 'Philadelphia, Pennsylvania, United States',
@@ -32,7 +36,9 @@ class Linkedin:
                     'city': 'Philadelphia',
                     'state': 'Pennsylvania',
                     'salary': '120000',
-                    'years': '8'
+                    'years': '8',
+                    'date': 'July 3, 2023',
+                    'name': 'Alex'
                 },
                 'radio':{
                     'authorized': 'Yes',
@@ -270,45 +276,52 @@ class Linkedin:
                 for group in groupList:
                     questionText = group.text.lower()
                     optionType = self.checkOptionType(group)
-                    if optionType[0] == 'selectBox':
-                        record= 0
-                        for key in self.recordList[optionType[0]]:
-                            if key in questionText:
-                                record=key
-                                value= self.recordList[optionType[0]][key]
+                    if optionType is not None:
+                        if optionType[0] == 'selectBox':
+                            record= 0
+                            for key in self.recordList[optionType[0]]:
+                                if key in questionText:
+                                    record=key
+                            try:    
+                                value= self.recordList[optionType[0]][record]
                                 if type(value) is int:
                                     optionType[1].select_by_index(value)
                                 else:
                                     optionType[1].select_by_value(value)
-                            else:
-                                continue
-                    elif optionType[0] == 'textBox' or optionType[0]=='comboBox':
-                        for key in self.recordList[optionType[0]]:
-                            value= self.recordList[optionType[0]][key]
-                            if optionType[0] is not 'comboBox':
-                                if key in questionText:
-                                    optionType[1].clear()
-                                    optionType[1].send_keys(value)
+                            except:
+                                optionType[1].select_by_index(1)
+                        elif optionType[0] == 'textBox' or optionType[0]=='comboBox':
+                            for key in self.recordList[optionType[0]]:
+                                value= self.recordList[optionType[0]][key]
+                                if optionType[0] is not 'comboBox':
+                                    if key in questionText:
+                                        optionType[1].clear()
+                                        optionType[1].send_keys(value)
+                                    else:
+                                        continue
                                 else:
-                                    continue
-                            else:
-                                if key in questionText:
-                                    optionType[1].clear()
-                                    optionType[1].send_keys(value)
-                                    optionType[1].send_keys(Keys.ARROW_DOWN)
-                                    optionType[1].send_keys(Keys.ENTER)
-                                else:
-                                    continue
+                                    if key in questionText:
+                                        optionType[1].clear()
+                                        optionType[1].send_keys(value)
+                                        time.sleep(1)
+                                        optionType[1].send_keys(Keys.ARROW_DOWN)
+                                        time.sleep(1)
+                                        optionType[1].send_keys(Keys.ENTER)
+                                        time.sleep(1)
+                                    else:
+                                        continue
 
-                    elif optionType[0] == 'radio':
-                        for key in self.recordList[optionType[0]]:
-                            value= self.recordList[optionType[0]][key]
-                            if key in questionText:
-                                group.find_element(By.XPATH, "div//label[contains(@data-test-text-selectable-option__label, "+str(value)+")]").click()
-                            else:
-                                group.find_element(By.XPATH, "div//label[contains(@data-test-text-selectable-option__label, 'Yes')]").click()
-                    elif 'acknowledge' in questionText:
-                        group.find_element(By.XPATH, "div//label").click()
+                        elif optionType[0] == 'radio':
+                            for key in self.recordList[optionType[0]]:
+                                value= self.recordList[optionType[0]][key]
+                                if key in questionText:
+                                    group.find_element(By.XPATH, "div//label[contains(@data-test-text-selectable-option__label, "+str(value)+")]").click()
+                                else:
+                                    group.find_element(By.XPATH, "div//label[contains(@data-test-text-selectable-option__label, 'Yes')]").click()
+                        elif 'acknowledge' in questionText or 'acknowledgement' in questionText:
+                            group.find_element(By.XPATH, "div//label").click()
+                        else:
+                            pass
                 try:    
                     self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Continue to next step']").click()
                     time.sleep(random.uniform(1, constants.botSpeed))
